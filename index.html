@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>태양이 아이스크림을 녹이는 게임</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background-color: skyblue;
+        }
+        #game-container {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            margin: auto;
+            background-color: white;
+            border: 2px solid black;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #sun {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            background-color: yellow;
+            border-radius: 50%;
+            box-shadow: 0 0 20px orange;
+        }
+        .icecream {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 80px;
+            border-radius: 10px;
+        }
+        .stick {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 30px;
+            background-color: burlywood;
+            border-radius: 5px;
+        }
+        .falling-box {
+            position: absolute;
+            top: 0;
+            width: 80px;
+            height: 40px;
+            background-color: lightgray;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        #health, #score, #timer {
+            margin-top: 10px;
+            font-size: 20px;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        #word-input {
+            margin-top: 10px;
+            font-size: 18px;
+            padding: 5px;
+        }
+        #buttons {
+            margin-top: 10px;
+        }
+        .button {
+            font-size: 16px;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            let health = 20;
+            let score = 0;
+            let timeLeft = 90;
+            const healthDisplay = document.getElementById('health');
+            const scoreDisplay = document.getElementById('score');
+            const timerDisplay = document.getElementById('timer');
+            const gameContainer = document.getElementById('game-container');
+            const wordInput = document.getElementById('word-input');
+            const words = ["기상천외", "일취월장", "천고마비", "동문서답", "권불십년", "백년해로", "일석이조", "조삼모사", "화룡점정", "타산지석", "유비무환", "파죽지세", "백전백승"];
+            let activeBoxes = {};
+            let usedPositions = [];
+            const iceCreamColors = ["brown", "pink", "lightgreen", "green"];
+            
+            function createIceCream() {
+                let iceCream = document.createElement("div");
+                iceCream.classList.add("icecream");
+                iceCream.style.backgroundColor = iceCreamColors[Math.floor(Math.random() * iceCreamColors.length)];
+                
+                let stick = document.createElement("div");
+                stick.classList.add("stick");
+                
+                gameContainer.appendChild(iceCream);
+                gameContainer.appendChild(stick);
+            }
+            
+            function meltIceCream() {
+                if (health > 0) {
+                    health--;
+                    healthDisplay.textContent = `체력: ${health}`;
+                }
+                if (health === 0) {
+                    score++;
+                    scoreDisplay.textContent = `점수: ${score}`;
+                    health = 20;
+                    healthDisplay.textContent = `체력: ${health}`;
+                    document.querySelectorAll(".icecream, .stick").forEach(el => el.remove());
+                    createIceCream();
+                }
+            }
+            
+            function createFallingBox() {
+                let word = words[Math.floor(Math.random() * words.length)];
+                let leftPos;
+                do {
+                    leftPos = Math.random() * 220;
+                } while (usedPositions.includes(leftPos));
+                usedPositions.push(leftPos);
+                
+                let box = document.createElement("div");
+                box.classList.add("falling-box");
+                box.textContent = word;
+                box.style.left = `${leftPos}px`;
+                gameContainer.appendChild(box);
+                
+                let interval = setInterval(() => {
+                    let top = parseInt(window.getComputedStyle(box).top);
+                    if (top >= 360) {
+                        clearInterval(interval);
+                        box.remove();
+                        delete activeBoxes[word];
+                        usedPositions = usedPositions.filter(pos => pos !== leftPos);
+                    } else {
+                        box.style.top = `${top + 10}px`;
+                    }
+                }, 300);
+                
+                activeBoxes[word] = { element: box, interval };
+            }
+            
+            function startTimer() {
+                let timerInterval = setInterval(() => {
+                    if (timeLeft > 0) {
+                        timeLeft--;
+                        timerDisplay.textContent = `남은 시간: ${timeLeft}초`;
+                    } else {
+                        clearInterval(timerInterval);
+                        alert(`당신은 ${score}점 입니다.`);
+                    }
+                }, 1000);
+            }
+            
+            function startGame() {
+                createIceCream();
+                setInterval(createFallingBox, 1500);
+                setInterval(meltIceCream, 1000);
+                startTimer();
+                wordInput.addEventListener("keydown", checkWord);
+            }
+            
+            function checkWord(event) {
+                if (event.key === "Enter" || event.key === " ") {
+                    let inputWord = wordInput.value.trim();
+                    if (activeBoxes[inputWord]) {
+                        clearInterval(activeBoxes[inputWord].interval);
+                        activeBoxes[inputWord].element.remove();
+                        delete activeBoxes[inputWord];
+                        health--;
+                        healthDisplay.textContent = `체력: ${health}`;
+                    }
+                    wordInput.value = "";
+                }
+            }
+            
+            startGame();
+        });
+    </script>
+</head>
+<body>
+    <h1>태양이 아이스크림을 녹이는 게임</h1>
+    <div id="score">점수: 0</div>
+    <div id="timer">남은 시간: 90초</div>
+    <div id="game-container">
+        <div id="sun"></div>
+    </div>
+    <div id="health">체력: 20</div>
+    <input id="word-input" type="text" placeholder="단어 입력 후 Enter 또는 Space" autofocus>
+</body>
+</html>
